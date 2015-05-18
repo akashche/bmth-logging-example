@@ -1,0 +1,14 @@
+RULE 01
+CLASS com.redhat.byteman.thermostat.application.Application
+METHOD main
+HELPER com.redhat.byteman.thermostat.helper.Helper
+AT ENTRY
+BIND list:java.util.List = new java.util.ArrayList()
+IF true
+DO
+    list.add("foo");
+    list.add(42);
+    list.add("bar");
+    list.add("baz");
+    log("entering main", list);
+ENDRULE
