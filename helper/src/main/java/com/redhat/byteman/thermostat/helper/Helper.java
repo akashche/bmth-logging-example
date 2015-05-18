@@ -1,6 +1,7 @@
 package com.redhat.byteman.thermostat.helper;
 
 import com.google.gson.Gson;
+import org.jboss.byteman.rule.Rule;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -11,10 +12,14 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * User: alexkasko
  * Date: 5/18/15
  */
-public class Helper {
+public class Helper extends org.jboss.byteman.rule.helper.Helper {
     private static final Gson GSON = new Gson();
 
     private static final Queue<LogEntry> cache = new ConcurrentLinkedQueue<LogEntry>();
+
+    protected Helper(Rule rule) {
+        super(rule);
+    }
 
     public static void activated() {
         System.out.println("Byteman logging helper activated");
@@ -31,7 +36,7 @@ public class Helper {
         }));
     }
 
-    public static void deactivated() throws IOException {
+    public static void deactivated() {
         System.out.println("Dumping data for Byteman logging helper...");
         File file = dumpToFile();
         System.out.println("Data dumped to file: [" + file.getAbsolutePath() + "]");
@@ -65,7 +70,7 @@ public class Helper {
         return map;
     }
 
-    private static File dumpToFile() throws IOException {
+    private static File dumpToFile() {
         File file = new File(System.currentTimeMillis() + ".json");
         OutputStream os = null;
         try {
@@ -74,6 +79,10 @@ public class Helper {
             GSON.toJson(cache, writer);
             writer.close();
             return file;
+        } catch (Exception e) {
+            // deactivated method cannot throw
+            e.printStackTrace();
+            return null;
         } finally {
             closeQuietly(os);
         }

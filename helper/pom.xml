@@ -16,6 +16,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.jboss.byteman</groupId>
+            <artifactId>byteman</artifactId>
+            <version>${version.byteman}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
         	<groupId>com.google.code.gson</groupId>
         	<artifactId>gson</artifactId>
         	<version>2.3.1</version>
