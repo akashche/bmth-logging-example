@@ -1,0 +1,98 @@
+# check that injection works
+RULE 01
+CLASS net.sf.jasperreports.engine.JasperCompileManager
+METHOD compile(java.io.InputStream)
+AT ENTRY
+IF true
+DO traceln("BYTEMAN 01: entering compile")
+ENDRULE
+
+# fail at template compile stage (disabled)
+RULE 02
+CLASS net.sf.jasperreports.engine.JasperCompileManager
+METHOD compile(java.io.InputStream)
+AT EXIT
+IF false
+DO throw new RuntimeException("BYTEMAN 02: compile fail")
+ENDRULE
+
+# trace all exporter configuration parameters
+RULE 03
+CLASS net.sf.jasperreports.engine.export.JRPdfExporter
+METHOD exportReport()
+AT ENTRY
+IF true
+DO traceln("BYTEMAN 03: " + $0.getParameters())
+ENDRULE
+
+# crash export after the report written but before stream is closed (disabled)
+RULE 04
+CLASS net.sf.jasperreports.engine.export.JRPdfExporter
+METHOD exportReportToStream(java.io.OutputStream)
+AT EXIT
+IF false
+DO throw new RuntimeException("BYTEMAN 04: export fail")
+ENDRULE
+
+# inspect internal jasper parameters for subreport query
+RULE 05
+CLASS net.sf.jasperreports.components.list.FillDatasetRun
+METHOD start()
+AT ENTRY
+IF true
+DO traceln("BYTEMAN 05: " + $0.parameterValues)
+ENDRULE
+
+# inspect what query jasper uses for subreport (disabled)
+RULE 06
+CLASS net.sf.jasperreports.engine.query.JRJdbcQueryExecuter
+METHOD createStatement()
+AT ENTRY
+IF false
+DO traceln("BYTEMAN 06: " + $0.getQueryString())
+ENDRULE
+
+# inspect subreport query parameters
+RULE 07
+CLASS net.sf.jasperreports.engine.query.JRJdbcQueryExecuter
+METHOD setStatementParameter(int, java.lang.String)
+AT EXIT
+IF true
+DO traceln("BYTEMAN 07: " + $parameterName + ": " + $0.getValueParameter($parameterName).getValue())
+ENDRULE
+
+# measure servlet call enter
+RULE 9
+CLASS com.pmisoftware.reporting.webapp.ReportingServlet
+METHOD doPost(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+HELPER com.redhat.byteman.thermostat.helper.Helper
+AT ENTRY
+IF true
+DO resetTimer(Thread.currentThread())
+ENDRULE
+
+# measure servlet call exit
+RULE 10
+CLASS com.pmisoftware.reporting.webapp.ReportingServlet
+METHOD doPost(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)
+HELPER com.redhat.byteman.thermostat.helper.Helper
+AT EXIT
+BIND
+    list:java.util.List = new java.util.ArrayList()
+IF true
+DO
+    list.add("time");
+    list.add(getElapsedTimeFromTimer(Thread.currentThread()));
+    list.add("compileCount");
+    list.add(readCounter("compileCounter"));
+    log("servlet post measurement", list);
+ENDRULE
+
+# count the number of times templates were compiled (to check cache works)
+RULE 11
+CLASS net.sf.jasperreports.engine.JasperCompileManager
+METHOD compile(java.io.InputStream)
+AT ENTRY
+IF true
+DO incrementCounter("compileCounter")
+ENDRULE
