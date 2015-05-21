@@ -3,12 +3,13 @@ CLASS com.redhat.byteman.thermostat.application.Application
 METHOD main
 HELPER com.redhat.byteman.thermostat.helper.Helper
 AT ENTRY
-BIND list:java.util.List = new java.util.ArrayList()
+BIND varargs:Object[] = new Object[4];
 IF true
 DO
-    list.add("foo");
-    list.add(42);
-    list.add("bar");
-    list.add("baz");
-    log("entering main", list);
+    varargs[0] = "foo";
+    varargs[1] = 42;
+    varargs[2] = "bar";
+    varargs[3] = "baz";
+    addChartRecord("entering main", varargs);
+    addChartRecord("entering main2", "foo1", 43);
 ENDRULE

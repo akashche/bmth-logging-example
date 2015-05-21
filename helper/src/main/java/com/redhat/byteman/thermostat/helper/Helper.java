@@ -1,9 +1,11 @@
 package com.redhat.byteman.thermostat.helper;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.jboss.byteman.rule.Rule;
 
 import java.io.*;
+import java.lang.management.ManagementFactory;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -13,9 +15,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * Date: 5/18/15
  */
 public class Helper extends org.jboss.byteman.rule.helper.Helper {
-    private static final Gson GSON = new Gson();
-
-    private static final Queue<LogEntry> cache = new ConcurrentLinkedQueue<LogEntry>();
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Queue<ChartRecord> CACHE = new ConcurrentLinkedQueue<ChartRecord>();
+    private static final String JVM_ID = ManagementFactory.getRuntimeMXBean().getName();
 
     protected Helper(Rule rule) {
         super(rule);
@@ -43,29 +45,40 @@ public class Helper extends org.jboss.byteman.rule.helper.Helper {
         System.out.println("Byteman logging helper deactivated");
     }
 
-    // varargs are not supported by Byteman
-    public boolean log(String message, List<Object> state) {
+    // todo: should be optimized to not create intermediate Object[]
+    public boolean addChartRecord(String markerNullable, String key, Object value) {
+        return addChartRecord(markerNullable, new Object[]{key, value});
+    }
+
+    public boolean addChartRecord(String markerNullable, String key1, Object value1, String key2, Object value2) {
+        return addChartRecord(markerNullable, new Object[]{key1, value1, key2, value2});
+    }
+
+    public boolean addChartRecord(String markerNullable, String key1, Object value1, String key2, Object value2,
+                                  String key3, Object value3) {
+        return addChartRecord(markerNullable, new Object[]{key1, value1, key2, value2, key3, value3});
+    }
+
+    public boolean addChartRecord(String markerNullable, Object... dataArray) {
         long timestamp = System.currentTimeMillis();
-        String msg = defaultString(message);
-        StackTraceElement[] elems = Thread.currentThread().getStackTrace();
-        String stackTrace = formatStackTrace(elems);
-        String threadName = Thread.currentThread().getName();
-        // todo: fixme
-        String className = elems[elems.length - 1].getClassName();
-        String methodName = elems[elems.length - 1].getMethodName();
-        LinkedHashMap<String, Object> stateMap = toMap(state);
-        LogEntry en = new LogEntry(timestamp, msg, stackTrace, threadName, className, methodName, stateMap);
-        cache.add(en);
+        String marker = defaultString(markerNullable);
+        LinkedHashMap<String, Object> data = toMap(dataArray);
+        data.put("stackTrace", formatStack());
+        data.put("methodName", formatStack(1));
+        data.put("threadName", Thread.currentThread().getName());
+        data.put("jvmId", JVM_ID);
+        ChartRecord en = new ChartRecord(timestamp, marker, data);
+        CACHE.add(en);
         return true;
     }
 
-    private static LinkedHashMap<String, Object> toMap(List<Object> queryParams){
+    private static LinkedHashMap<String, Object> toMap(Object[] dataArray){
         LinkedHashMap<String, Object> map = new LinkedHashMap<String, Object>();
-        if (0 != queryParams.size() % 2) throw new BmThHelperException("Invalid odd parameters count");
-        for (int i = 0; i < queryParams.size(); i += 2) {
-            Object objKey = queryParams.get(i);
+        if (0 != dataArray.length % 2) throw new BmThHelperException("Invalid odd elements count");
+        for (int i = 0; i < dataArray.length; i += 2) {
+            Object objKey = dataArray[i];
             if (!(objKey instanceof String)) throw new BmThHelperException("Invalid key: [" + objKey + "]");
-            map.put((String) objKey, queryParams.get(i+1));
+            map.put((String) objKey, dataArray[i + 1]);
         }
         return map;
     }
@@ -76,7 +89,7 @@ public class Helper extends org.jboss.byteman.rule.helper.Helper {
         try {
             os = new FileOutputStream(file);
             Writer writer = new BufferedWriter(new OutputStreamWriter(os, Charset.forName("UTF-8")));
-            GSON.toJson(cache, writer);
+            GSON.toJson(CACHE, writer);
             writer.close();
             return file;
         } catch (Exception e) {
@@ -102,29 +115,4 @@ public class Helper extends org.jboss.byteman.rule.helper.Helper {
         return null != st ? st : "";
     }
 
-    private static String formatStackTrace(StackTraceElement[] elems) {
-        StringBuilder sb = new StringBuilder();
-        for (StackTraceElement el : elems) {
-            printFrame(sb, el);
-        }
-        return sb.toString();
-    }
-
-    private static void printFrame(StringBuilder buffer, StackTraceElement frame)
-    {
-        buffer.append(frame.getClassName());
-        buffer.append(".");
-        buffer.append(frame.getMethodName());
-        String fileName = frame.getFileName();
-        if (fileName != null) {
-            buffer.append("(");
-            buffer.append(fileName);
-            buffer.append(":");
-            buffer.append(frame.getLineNumber());
-            buffer.append(")");
-        } else {
-            buffer.append(" (Unknown Source)");
-        }
-        buffer.append('\n');
-    }
 }

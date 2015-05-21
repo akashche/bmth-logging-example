@@ -1,6 +1,6 @@
 package com.redhat.byteman.thermostat.frontend;
 
-import com.redhat.byteman.thermostat.helper.LogEntry;
+import com.redhat.byteman.thermostat.helper.ChartRecord;
 import org.apache.batik.dom.GenericDOMImplementation;
 import org.apache.batik.svggen.SVGGraphics2D;
 import org.jfree.chart.ChartFactory;
@@ -28,7 +28,7 @@ import java.util.List;
 public class Charter {
     private static final String EMPTY = "";
 
-    public void createChart(List<LogEntry> list, String key, File out) {
+    public void createChart(List<ChartRecord> list, String key, File out) {
         ChartDatasetWithBounds barset = convertToDataset(list, key);
         JFreeChart chart = ChartFactory.createBarChart(EMPTY, EMPTY, EMPTY, barset.getDataset(), PlotOrientation.VERTICAL, false, true, false);
         CategoryPlot plot = (CategoryPlot) chart.getPlot();
@@ -63,11 +63,11 @@ public class Charter {
         ax.setTickLabelPaint(toColor("#FF222222"));
     }
 
-    private static ChartDatasetWithBounds convertToDataset(List<LogEntry> list, String key) {
+    private static ChartDatasetWithBounds convertToDataset(List<ChartRecord> list, String key) {
         DefaultCategoryDataset ds = new DefaultCategoryDataset();
         long min = 0; long max = 1;
-        for (LogEntry le : list) {
-            Object valObj = le.getState().get(key);
+        for (ChartRecord le : list) {
+            Object valObj = le.getData().get(key);
             if (null !=  valObj && valObj instanceof Number) {
                 Number valNum = (Number) valObj;
                 long val = valNum.longValue();

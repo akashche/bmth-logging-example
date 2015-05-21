@@ -2,7 +2,7 @@ package com.redhat.byteman.thermostat.frontend;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.redhat.byteman.thermostat.helper.LogEntry;
+import com.redhat.byteman.thermostat.helper.ChartRecord;
 
 import java.io.*;
 import java.lang.reflect.Type;
@@ -16,18 +16,18 @@ import java.util.List;
  */
 public class Main {
     private static final Gson GSON = new Gson();
-    public static final Type LOG_ENTRY_LIST_TYPE = new TypeToken<ArrayList<LogEntry>>() {}.getType();
+    public static final Type LOG_ENTRY_LIST_TYPE = new TypeToken<ArrayList<ChartRecord>>() {}.getType();
 
     public static void main(String[] args) throws FileNotFoundException {
         if (1 != args.length) throw new RuntimeException(
                 "Invalid arguments: JSON file as first and only argument is required");
-        List<LogEntry> list = readJson(args[0]);
+        List<ChartRecord> list = readJson(args[0]);
         Charter charter = new Charter();
         charter.createChart(list, "time", new File("time_chart.svg"));
         charter.createChart(list, "compileCount", new File("compile_count_chart.svg"));
     }
 
-    private static List<LogEntry> readJson(String file) throws FileNotFoundException {
+    private static List<ChartRecord> readJson(String file) throws FileNotFoundException {
         InputStream is = null;
         try {
             is = new FileInputStream(file);
