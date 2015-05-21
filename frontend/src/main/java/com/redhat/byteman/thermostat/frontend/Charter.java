@@ -38,14 +38,11 @@ public class Charter {
         plot.setRangeGridlinePaint(toColor("#FFAAAAAA"));
         plot.getRangeAxis().setRange(new Range(barset.getMin(), barset.getMax() * 1.1));
         plot.getRangeAxis().setStandardTickUnits(NumberAxis.createIntegerTickUnits());
-//        plot.getRangeAxis().setTickLabelFont(conf.getTickLabelFont());
         colorAxis(plot.getRangeAxis());
         colorAxis(plot.getDomainAxis());
         plot.getDomainAxis().setCategoryLabelPositions(CategoryLabelPositions.createUpRotationLabelPositions(Math.PI * 0.12d));
         plot.getDomainAxis().setLowerMargin(0.05d);
         plot.getDomainAxis().setUpperMargin(0.01d);
-//        plot.getDomainAxis().setTickLabelFont(conf.getTickLabelFont());
-
         BarRenderer3D barrenderer = new BarRenderer3D(24.0d, 16.0d);
         barrenderer.setSeriesPaint(0, toColor("#BBFF8800"));
         barrenderer.setWallPaint(toColor("#FFEEEEEE"));
